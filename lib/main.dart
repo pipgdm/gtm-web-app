@@ -3,18 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 void main() {
-  runApp(const DeliveryPartnerApp());
+  runApp(const MyApp());
 }
 
-class DeliveryPartnerApp extends StatelessWidget {
-  const DeliveryPartnerApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Delivery Partner Finder',
+    return const MaterialApp(
+      home: HomeScreen(),
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
     );
   }
 }
@@ -27,32 +26,44 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final TextEditingController urlController = TextEditingController();
-  String result = '';
+  final TextEditingController controller = TextEditingController();
+  String result = "";
   bool loading = false;
 
-  Future<void> findDeliveryPartner() async {
+  final String baseUrl = "https://delivery-api-nsmk.onrender.com";
+
+  Future<void> findDelivery() async {
     setState(() {
       loading = true;
-      result = '';
+      result = "";
     });
 
-    try {
-      final response = await http.post(
-      Uri.parse('https://delivery-api-nsmk.onrender.com/find-delivery-partner'),          headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'url': urlController.text}),
-      );
-
-      setState(() {
-        result = response.body;
-      });
-    } catch (e) {
-      setState(() {
-        result = 'Error: $e';
-      });
-    }
+    final response = await http.post(
+      Uri.parse('$baseUrl/find-delivery-partner'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'url': controller.text}),
+    );
 
     setState(() {
+      result = response.body;
+      loading = false;
+    });
+  }
+
+  Future<void> findSignal() async {
+    setState(() {
+      loading = true;
+      result = "";
+    });
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/latest-signal'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'url': controller.text}),
+    );
+
+    setState(() {
+      result = response.body;
       loading = false;
     });
   }
@@ -61,31 +72,48 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Container(
+        child: SizedBox(
           width: 600,
-          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Delivery Partner Finder',
+                "GTM Signal Tool",
                 style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
+
               TextField(
-                controller: urlController,
+                controller: controller,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: 'Enter retailer URL',
-                  hintText: 'https://www.example.com',
+                  labelText: "Enter retailer URL",
                 ),
               ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: loading ? null : findDeliveryPartner,
-                child: Text(loading ? 'Checking...' : 'Find delivery partner'),
+
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                    onPressed: loading ? null : findDelivery,
+                    child: const Text("Find Delivery"),
+                  ),
+                  const SizedBox(width: 20),
+                  ElevatedButton(
+                    onPressed: loading ? null : findSignal,
+                    child: const Text("Find Signal"),
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
+
+              const SizedBox(height: 20),
+
+              if (loading) const CircularProgressIndicator(),
+
+              const SizedBox(height: 20),
+
               SelectableText(result),
             ],
           ),
